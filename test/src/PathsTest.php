@@ -26,6 +26,27 @@ class PathsTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * @expectedException \InvalidArgumentException
+     */
+    public function testSetInvalidServerUrlException()
+    {
+        new Client('invalid server url');
+    }
+
+    /**
+     * Test automatic detection of HTTPS
+     */
+    public function testHttpsDetection()
+    {
+        $reflection = new \ReflectionClass(Client::class);
+        $is_https_property = $reflection->getProperty('is_https');
+        $is_https_property->setAccessible(true);
+
+        $this->assertFalse($is_https_property->getValue(new Client('http://127.0.0.1:4001')));
+        $this->assertTrue($is_https_property->getValue(new Client('https://127.0.0.1:4001')));
+    }
+
+    /**
      * Test default root value
      */
     public function testDefaultRoot()

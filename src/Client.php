@@ -19,6 +19,11 @@ class Client
     private $server;
 
     /**
+     * @var bool
+     */
+    private $is_https = false;
+
+    /**
      * @var string
      */
     private $api_version;
@@ -27,6 +32,11 @@ class Client
      * @var string
      */
     private $root = '/';
+
+    /**
+     * @var boolean
+     */
+    private $verify_ssl_peer = true;
 
     /**
      * @param string $server
@@ -52,13 +62,18 @@ class Client
      */
     public function &setServer($server)
     {
-        $server = rtrim($server, '/');
+        if (filter_var($server, FILTER_VALIDATE_URL)) {
+            $server = rtrim($server, '/');
 
-        if ($server) {
-            $this->server = $server;
+            if ($server) {
+                $this->server = $server;
+                $this->is_https = strtolower(parse_url($this->server)['scheme']) == 'https';
+            }
+
+            return $this;
+        } else {
+            throw new \InvalidArgumentException("Value '$server' is not a valid server URL");
         }
-
-        return $this;
     }
 
     /**
