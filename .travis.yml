@@ -4,6 +4,6 @@ php:
   - 7.0
 before_install:
   - composer self-update
-  - bash bin/build_etcd
+  - bash bin/build_etcd.sh
 install: composer install --dev
 script: phpunit -c test/phpunit.xml
