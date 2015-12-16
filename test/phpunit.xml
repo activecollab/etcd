@@ -1,0 +1,7 @@
+<phpunit bootstrap="./bootstrap.php" backupGlobals="false" backupStaticAttributes="false" convertErrorsToExceptions="true" convertNoticesToExceptions="true" convertWarningsToExceptions="true" stopOnError="false" stopOnFailure="false" stopOnIncomplete="false" stopOnSkipped="false" syntaxCheck="false" processIsolation="false" colors="true">
+    <testsuites>
+        <testsuite name="Etcd">
+            <directory>./src</directory>
+        </testsuite>
+    </testsuites>
+</phpunit>
