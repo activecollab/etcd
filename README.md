@@ -53,6 +53,18 @@ $client->listDirs('/dir/path');
 $client->getKeyValueMap('/dir/path')
 ```
 
+## Sandbox Path
+
+If you configure sandbox path in the client instance, all keys will be prefixed with that path:
+
+```php
+$client = new EtcdClient('http://127.0.0.1:4001');
+$client->setSandboxPath('/my/namespace');
+
+$client->set('/key/name', 'value'); // will set /my/namespace/key/name
+print $client->get('/key/name'); // will print /my/namespace/key/name
+```
+
 
 ## SSL
 
