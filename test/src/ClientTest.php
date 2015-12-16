@@ -3,6 +3,7 @@
 namespace ActiveCollab\Etcd\Tests\Etcd;
 
 use ActiveCollab\Etcd\Client;
+use ActiveCollab\Etcd\Exception\EtcdException;
 
 /**
  * @package ActiveCollab\Etcd\Tests\Etcd
@@ -19,21 +20,45 @@ class ClientTest extends \PHPUnit_Framework_TestCase
      */
     private $dirname = '/phpunit_test';
 
+    /**
+     * {@inheritdoc}
+     */
     protected function setUp()
     {
         $this->client = new Client();
 
         $this->client->setRoot('/');
-        $this->client->rmdir($this->dirname, true);
+
+        try {
+            $this->client->rmdir($this->dirname, true);
+        } catch (EtcdException $e) {
+
+        }
 
         $this->client->mkdir($this->dirname);
         $this->client->setRoot($this->dirname);
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function tearDown()
     {
-        $this->client->setRoot('/');
-        $this->client->rmdir($this->dirname, true);
+        try {
+            $this->client->rmdir($this->dirname, true);
+        } catch (EtcdException $e) {
+
+        }
+    }
+
+    /**
+     * @covers LinkORB\Component\Etcd\Client::get
+     */
+    public function testGet()
+    {
+        $this->cli9ent->set('/testgetvalue', 'getvalue');
+        $value = $this->client->get('/testgetvalue');
+        $this->assertEquals('getvalue', $value);
     }
 
     /**
@@ -54,16 +79,6 @@ class ClientTest extends \PHPUnit_Framework_TestCase
 
         $this->client->set('testttl', 'ttlvalue', $ttl);
         $this->assertLessThanOrEqual($ttl, $this->client->getNode('testttl')['ttl']);
-    }
-
-    /**
-     * @covers LinkORB\Component\Etcd\Client::get
-     */
-    public function testGet()
-    {
-        $this->client->set('/testgetvalue', 'getvalue');
-        $value = $this->client->get('/testgetvalue');
-        $this->assertEquals('getvalue', $value);
     }
 
     /**

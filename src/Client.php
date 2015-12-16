@@ -21,7 +21,7 @@ class Client
     /**
      * @var string
      */
-    private $apiversion;
+    private $api_version;
 
     /**
      * @var string
@@ -30,9 +30,9 @@ class Client
 
     /**
      * @param string $server
-     * @param string $version
+     * @param string $api_version
      */
-    public function __construct($server = '', $version = 'v2')
+    public function __construct($server = '', $api_version = 'v2')
     {
         $server = rtrim($server, '/');
 
@@ -40,7 +40,34 @@ class Client
             $this->server = $server;
         }
 
-        $this->apiversion = $version;
+        $this->setApiVersion($api_version);
+    }
+
+    /**
+     * @return string
+     */
+    public function getApiVersion()
+    {
+        return $this->api_version;
+    }
+
+    /**
+     * @param  string $version
+     * @return $this
+     */
+    public function &setApiVersion($version)
+    {
+        $this->api_version = $version;
+
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getRoot()
+    {
+        return $this->root;
     }
 
     /**
@@ -57,7 +84,7 @@ class Client
      * @param string $root
      * @return Client
      */
-    public function setRoot($root)
+    public function &setRoot($root)
     {
         if (substr($root, 0, 1) !== '/') {
             $root = '/' . $root;
@@ -74,15 +101,13 @@ class Client
      * @param  string $key
      * @return string
      */
-    private function buildKeyUri($key)
+    public function getKeyPath($key)
     {
         if (substr($key, 0, 1) !== '/') {
             $key = '/' . $key;
         }
 
-        $uri = rtrim('/' . $this->apiversion . '/keys' . $this->root, '/') . $key;
-
-        return $uri;
+        return rtrim('/' . $this->api_version . '/keys' . $this->root, '/') . $key;
     }
 
     /**
@@ -93,22 +118,30 @@ class Client
      */
     private function getKeyUri($key)
     {
-        return $this->server . $this->buildKeyUri($key);
+        return $this->server . $this->getKeyPath($key);
     }
 
+    /**
+     * @return array
+     */
     public function geVersion()
     {
         return $this->httpGet($this->server . '/version');
     }
 
     /**
-     * Do a server request
+     * Make a GET request
      *
-     * @param string $uri
-     * @return mixed
+     * @param  string $uri
+     * @param  array  $query_arguments
+     * @return array
      */
-    public function httpGet($uri)
+    public function httpGet($uri, $query_arguments = [])
     {
+        if (!empty($query_arguments)) {
+            $uri .= '?' . http_build_query($query_arguments);
+        }
+
         if ($curl = curl_init($uri)) {
             curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 15);
 
@@ -129,9 +162,6 @@ class Client
                 return json_decode($response, true);
             }
         }
-//        $request = $this->guzzleclient->get($uri);
-//        $response = $request->send();
-//        $data = $response->getBody(true);
     }
 
     public function httpPut($uri, $payload = [], $query_arguments = [])
@@ -160,7 +190,20 @@ class Client
                 throw new \RuntimeException('PUT request failed. Reason: ' . $error, $error_code);
             } else {
                 curl_close($curl);
-                return json_decode($response, true);
+
+                $response = json_decode($response, true);
+
+                if (isset($response['errorCode']) && $response['errorCode']) {
+                    $message = $response['message'];
+
+                    if (isset($response['cause']) && $response['cause']) {
+                        $message .= '. Cause: ' . $response['cause'];
+                    }
+
+                    throw new EtcdException($message);
+                }
+
+                return $response;
             }
         }
     }
@@ -212,13 +255,7 @@ class Client
             $data['ttl'] = $ttl;
         }
 
-        $request = $this->guzzleclient->put($this->buildKeyUri($key), null, $data, [
-        'query' => $condition,
-        ]);
-        $response = $request->send();
-        $body = $response->json();
-
-        return $body;
+        return $this->httpPut($this->getKeyUri($key), $data, $condition);
     }
 
     /**
@@ -238,13 +275,15 @@ class Client
             ];
         }
 
-        $request = $this->guzzleclient->get(
-        $this->buildKeyUri($key),
-        null,
-        $query
-        );
-        $response = $request->send();
-        $body = $response->json();
+        $body = $this->httpGet($this->getKeyUri($key), $query);
+
+//        $request = $this->guzzleclient->get(
+//        $this->buildKeyUri($key),
+//        null,
+//        $query
+//        );
+//        $response = $request->send();
+//        $body = $response->json();
         if (isset($body['errorCode'])) {
             throw new KeyNotFoundException($body['message'], $body['errorCode']);
         }
@@ -314,7 +353,7 @@ class Client
 
         //var_dump($this->server . $this->buildKeyUri($key));
 
-        $body = $this->httpPut($this->server . $this->buildKeyUri($key), $data, ['prevExist' => 'false']);
+        $body = $this->httpPut($this->getKeyUri($key), $data, ['prevExist' => 'false']);
 
 //        $request = $this->guzzleclient->put(
 //        $this->buildKeyUri($key),
@@ -380,7 +419,7 @@ class Client
         ];
 
         $request = $this->guzzleclient->put(
-        $this->buildKeyUri($key),
+        $this->getKeyPath($key),
         null,
         [
         'ttl' => (int)$ttl,
@@ -408,7 +447,7 @@ class Client
      */
     public function rm($key)
     {
-        $request = $this->guzzleclient->delete($this->buildKeyUri($key));
+        $request = $this->guzzleclient->delete($this->getKeyPath($key));
         $response = $request->send();
         $body = $response->json();
 
@@ -435,7 +474,7 @@ class Client
             $query['recursive'] = 'true';
         }
 
-        $body = $this->httpDelete($this->server . $this->buildKeyUri($key), $query);
+        $body = $this->httpDelete($this->server . $this->getKeyPath($key), $query);
 
 //        $request = $this->guzzleclient->delete(
 //        $this->buildKeyUri($key),
@@ -469,7 +508,7 @@ class Client
             $query['recursive'] = 'true';
         }
         $request = $this->guzzleclient->get(
-        $this->buildKeyUri($key),
+        $this->getKeyPath($key),
         null,
         [
         'query' => $query,
