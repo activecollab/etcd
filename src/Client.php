@@ -16,7 +16,7 @@ class Client
     /**
      * @var string
      */
-    private $server = 'http://127.0.0.1:4001';
+    private $server;
 
     /**
      * @var string
@@ -32,7 +32,25 @@ class Client
      * @param string $server
      * @param string $api_version
      */
-    public function __construct($server = '', $api_version = 'v2')
+    public function __construct($server = 'http://127.0.0.1:4001', $api_version = 'v2')
+    {
+        $this->setServer($server);
+        $this->setApiVersion($api_version);
+    }
+
+    /**
+     * @return string
+     */
+    public function getServer()
+    {
+        return $this->server;
+    }
+
+    /**
+     * @param  string $server
+     * @return $this
+     */
+    public function &setServer($server)
     {
         $server = rtrim($server, '/');
 
@@ -40,7 +58,7 @@ class Client
             $this->server = $server;
         }
 
-        $this->setApiVersion($api_version);
+        return $this;
     }
 
     /**
@@ -116,7 +134,7 @@ class Client
      * @param  string $key
      * @return string
      */
-    private function getKeyUri($key)
+    public function getKeyUrl($key)
     {
         return $this->server . $this->getKeyPath($key);
     }
@@ -255,7 +273,7 @@ class Client
             $data['ttl'] = $ttl;
         }
 
-        return $this->httpPut($this->getKeyUri($key), $data, $condition);
+        return $this->httpPut($this->getKeyUrl($key), $data, $condition);
     }
 
     /**
@@ -275,7 +293,7 @@ class Client
             ];
         }
 
-        $body = $this->httpGet($this->getKeyUri($key), $query);
+        $body = $this->httpGet($this->getKeyUrl($key), $query);
 
 //        $request = $this->guzzleclient->get(
 //        $this->buildKeyUri($key),
@@ -353,7 +371,7 @@ class Client
 
         //var_dump($this->server . $this->buildKeyUri($key));
 
-        $body = $this->httpPut($this->getKeyUri($key), $data, ['prevExist' => 'false']);
+        $body = $this->httpPut($this->getKeyUrl($key), $data, ['prevExist' => 'false']);
 
 //        $request = $this->guzzleclient->put(
 //        $this->buildKeyUri($key),

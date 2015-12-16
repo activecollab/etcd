@@ -10,6 +10,30 @@ use ActiveCollab\Etcd\Client;
 class PathsTest extends \PHPUnit_Framework_TestCase
 {
     /**
+     * Test default server value
+     */
+    public function testDefaultServer()
+    {
+        $this->assertEquals('http://127.0.0.1:4001', (new Client())->getServer());
+    }
+
+    /**
+     * Test set server
+     */
+    public function testSetServer()
+    {
+        $this->assertEquals('http://localhost:4001', (new Client())->setServer('http://localhost:4001/')->getServer());
+    }
+
+    /**
+     * Test default root value
+     */
+    public function testDefaultRoot()
+    {
+        $this->assertEquals('/', (new Client())->getRoot());
+    }
+
+    /**
      * Test if root path is properly set
      */
     public function testSetRoot()
@@ -52,5 +76,16 @@ class PathsTest extends \PHPUnit_Framework_TestCase
     {
         $this->assertEquals('/v2/keys/path/to/key', (new Client())->getKeyPath('path/to/key'));
         $this->assertEquals('/v2/keys/root/is/cool/path/to/key', (new Client())->setRoot('root/is/cool')->getKeyPath('path/to/key'));
+    }
+
+    /**
+     * Test how things fit together
+     */
+    public function testGetKeyUrl()
+    {
+        $clinet = (new Client('http://localhost:4001', 'v7'))->setRoot('awesome/root');
+        $this->assertInstanceOf(Client::class, $clinet);
+
+        $this->assertEquals('http://localhost:4001/v7/keys/awesome/root/path/to/key', $clinet->getKeyUrl('path/to/key'));
     }
 }
