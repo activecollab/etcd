@@ -7,7 +7,7 @@ use ActiveCollab\Etcd\Client;
 /**
  * @package ActiveCollab\Etcd\Tests\Etcd
  */
-class PathsTest extends \PHPUnit_Framework_TestCase
+class SettingsTest extends \PHPUnit_Framework_TestCase
 {
     /**
      * Test default server value
@@ -44,6 +44,39 @@ class PathsTest extends \PHPUnit_Framework_TestCase
 
         $this->assertFalse($is_https_property->getValue(new Client('http://127.0.0.1:4001')));
         $this->assertTrue($is_https_property->getValue(new Client('https://127.0.0.1:4001')));
+    }
+
+    /**
+     * Test verify SSL peer can be
+     */
+    public function testVerifySslPeerCanBeSet()
+    {
+        $this->assertTrue((new Client())->getVerifySslPeer());
+        $this->assertFalse((new Client())->verifySslPeer(false)->getVerifySslPeer());
+    }
+
+    /**
+     * @expectedException \InvalidArgumentException
+     */
+    public function testExceptionOnMissingCustomCaFile()
+    {
+        (new Client())->verifySslPeer(true, 'not a file');
+    }
+
+    /**
+     * Test custom CA file can be set
+     */
+    public function testCustomCaFileCanBeSet()
+    {
+        $this->assertEquals(__FILE__, (new Client())->verifySslPeer(true, __FILE__)->getCustomCaFile());
+    }
+
+    /**
+     * @expectedException \LogicException
+     */
+    public function testExceptionOnCustomCaFileWhenPeerIsNotVeified()
+    {
+        (new Client())->verifySslPeer(false, __FILE__)->getCustomCaFile();
     }
 
     /**
