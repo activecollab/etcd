@@ -1,11 +1,11 @@
 <?php
 
-namespace LinkORB\Tests\Component\Etcd;
+namespace ActiveCollab\Etcd\Tests\Etcd;
 
 use ActiveCollab\Etcd\Client;
 
 /**
- * @package LinkORB\Tests\Component\Etcd
+ * @package ActiveCollab\Etcd\Tests\Etcd
  */
 class ClientTest extends \PHPUnit_Framework_TestCase
 {
@@ -14,11 +14,18 @@ class ClientTest extends \PHPUnit_Framework_TestCase
      */
     protected $client;
 
+    /**
+     * @var string
+     */
     private $dirname = '/phpunit_test';
 
     protected function setUp()
     {
         $this->client = new Client();
+
+        $this->client->setRoot('/');
+        $this->client->rmdir($this->dirname, true);
+
         $this->client->mkdir($this->dirname);
         $this->client->setRoot($this->dirname);
     }
@@ -30,28 +37,23 @@ class ClientTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @covers LinkORB\Component\Etcd\Client::doRequest
-     */
-    public function testDoRequest()
-    {
-        $version = $this->client->doRequest('/version');
-        $this->assertArrayHasKey('releaseVersion', json_decode($version, true));
-    }
-
-    /**
      * @covers LinkORB\Component\Etcd\Client::set
      */
     public function testSet()
     {
         $this->client->set('/testset', 'setvalue');
-        $value = $this->client->get('/testset');
-        $this->assertEquals('setvalue', $value);
+        $this->assertEquals('setvalue', $this->client->get('/testset'));
+    }
 
-        // test ttl
+    /**
+     * @covers LinkORB\Component\Etcd\Client::set
+     */
+    public function testSetWithTtl()
+    {
         $ttl = 10;
+
         $this->client->set('testttl', 'ttlvalue', $ttl);
-        $node = $this->client->getNode('testttl');
-        $this->assertLessThanOrEqual($ttl, $node['ttl']);
+        $this->assertLessThanOrEqual($ttl, $this->client->getNode('testttl')['ttl']);
     }
 
     /**

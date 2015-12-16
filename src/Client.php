@@ -59,9 +59,10 @@ class Client
      */
     public function setRoot($root)
     {
-        if (strpos('/', $root) === false) {
+        if (substr($root, 0, 1) !== '/') {
             $root = '/' . $root;
         }
+
         $this->root = rtrim($root, '/');
 
         return $this;
@@ -70,19 +71,35 @@ class Client
     /**
      * Build key space operations
      *
-     * @param string $key
+     * @param  string $key
      * @return string
      */
     private function buildKeyUri($key)
     {
-        if (strpos('/', $key) === false) {
+        if (substr($key, 0, 1) !== '/') {
             $key = '/' . $key;
         }
-        $uri = '/' . $this->apiversion . '/keys' . $this->root . $key;
+
+        $uri = rtrim('/' . $this->apiversion . '/keys' . $this->root, '/') . $key;
 
         return $uri;
     }
 
+    /**
+     * Return full key URI
+     *
+     * @param  string $key
+     * @return string
+     */
+    private function getKeyUri($key)
+    {
+        return $this->server . $this->buildKeyUri($key);
+    }
+
+    public function geVersion()
+    {
+        return $this->httpGet($this->server . '/version');
+    }
 
     /**
      * Do a server request
@@ -90,13 +107,92 @@ class Client
      * @param string $uri
      * @return mixed
      */
-    public function doRequest($uri)
+    public function httpGet($uri)
     {
-        $request = $this->guzzleclient->get($uri);
-        $response = $request->send();
-        $data = $response->getBody(true);
+        if ($curl = curl_init($uri)) {
+            curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 15);
 
-        return $data;
+            curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
+            curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+
+            $response = curl_exec($curl);
+
+            if ($error_code = curl_errno($curl)) {
+                $error = curl_error($curl);
+
+                curl_close($curl);
+                throw new \RuntimeException('GET request failed. Reason: ' . $error, $error_code);
+            } else {
+                curl_close($curl);
+
+                return json_decode($response, true);
+            }
+        }
+//        $request = $this->guzzleclient->get($uri);
+//        $response = $request->send();
+//        $data = $response->getBody(true);
+    }
+
+    public function httpPut($uri, $payload = [], $query_arguments = [])
+    {
+        if (!empty($query_arguments)) {
+            $uri .= '?' . http_build_query($query_arguments);
+        }
+
+        if ($curl = curl_init($uri)) {
+            curl_setopt($curl, CURLOPT_HTTPHEADER, [ 'Content-Type: application/json' ]);
+            curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'PUT');
+            curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($payload));
+
+            curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 15);
+
+            curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
+            curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+
+            $response = curl_exec($curl);
+
+            if ($error_code = curl_errno($curl)) {
+                $error = curl_error($curl);
+
+                curl_close($curl);
+                throw new \RuntimeException('PUT request failed. Reason: ' . $error, $error_code);
+            } else {
+                curl_close($curl);
+                return json_decode($response, true);
+            }
+        }
+    }
+
+    public function httpDelete($uri, $query_arguments = [])
+    {
+        if (!empty($query_arguments)) {
+            $uri .= '?' . http_build_query($query_arguments);
+        }
+
+        if ($curl = curl_init($uri)) {
+            curl_setopt($curl, CURLOPT_HTTPHEADER, [ 'Content-Type: application/json' ]);
+            curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'DELETE');
+
+            curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 15);
+
+            curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
+            curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+
+            $response = curl_exec($curl);
+
+            if ($error_code = curl_errno($curl)) {
+                $error = curl_error($curl);
+
+                curl_close($curl);
+                throw new \RuntimeException('DELETE request failed. Reason: ' . $error, $error_code);
+            } else {
+                curl_close($curl);
+                return json_decode($response, true);
+            }
+        }
     }
 
     /**
@@ -215,17 +311,22 @@ class Client
         if ($ttl) {
             $data['ttl'] = $ttl;
         }
-        $request = $this->guzzleclient->put(
-        $this->buildKeyUri($key),
-        null,
-        $data,
-        [
-        'query' => ['prevExist' => 'false'],
-        ]
-        );
 
-        $response = $request->send();
-        $body = $response->json();
+        //var_dump($this->server . $this->buildKeyUri($key));
+
+        $body = $this->httpPut($this->server . $this->buildKeyUri($key), $data, ['prevExist' => 'false']);
+
+//        $request = $this->guzzleclient->put(
+//        $this->buildKeyUri($key),
+//        null,
+//        $data,
+//        [
+//        'query' => ['prevExist' => 'false'],
+//        ]
+//        );
+//
+//        $response = $request->send();
+//        $body = $response->json();
         if (isset($body['errorCode'])) {
             throw new KeyExistsException($body['message'], $body['errorCode']);
         }
@@ -333,16 +434,19 @@ class Client
         if ($recursive === true) {
             $query['recursive'] = 'true';
         }
-        $request = $this->guzzleclient->delete(
-        $this->buildKeyUri($key),
-        null,
-        null,
-        [
-        'query' => $query,
-        ]
-        );
-        $response = $request->send();
-        $body = $response->json();
+
+        $body = $this->httpDelete($this->server . $this->buildKeyUri($key), $query);
+
+//        $request = $this->guzzleclient->delete(
+//        $this->buildKeyUri($key),
+//        null,
+//        null,
+//        [
+//        'query' => $query,
+//        ]
+//        );
+//        $response = $request->send();
+//        $body = $response->json();
         if (isset($body['errorCode'])) {
             throw new EtcdException($body['message'], $body['errorCode']);
         }
