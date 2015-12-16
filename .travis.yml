@@ -3,10 +3,7 @@ php:
   - 5.6
   - 7.0
 before_install:
-  - ./build_etcd.sh v2.2.0
   - composer self-update
+  - bash bin/build_etcds
 install: composer install --dev
 script: phpunit -c test/phpunit.xml
-
-# Add env var to detect it during build
-env: TRAVIS=True
