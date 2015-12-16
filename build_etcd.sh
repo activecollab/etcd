@@ -13,6 +13,7 @@ git clone https://github.com/coreos/etcd.git
 cd etcd
 git checkout $ETCD_VERSION
 ./build
+./bin/etcd
 
 
 ${TRAVIS:?"This is not a Travis build. All Done"}
