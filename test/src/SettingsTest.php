@@ -80,22 +80,22 @@ class SettingsTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * Test default root value
+     * Test default sandbox path value
      */
-    public function testDefaultRoot()
+    public function testDefaultSandboxPath()
     {
-        $this->assertEquals('/', (new Client())->getRoot());
+        $this->assertEquals('/', (new Client())->getSandboxPath());
     }
 
     /**
-     * Test if root path is properly set
+     * Test if sandbox path path is properly set
      */
-    public function testSetRoot()
+    public function testSetSandboxPath()
     {
-        $this->assertEquals('/root', (new Client())->setRoot('root')->getRoot());
-        $this->assertEquals('/root', (new Client())->setRoot('root/')->getRoot());
-        $this->assertEquals('/root', (new Client())->setRoot('/root/')->getRoot());
-        $this->assertEquals('/a/bit/deeper/path', (new Client())->setRoot('/a/bit/deeper/path/')->getRoot());
+        $this->assertEquals('/root', (new Client())->setSandboxPath('root')->getSandboxPath());
+        $this->assertEquals('/root', (new Client())->setSandboxPath('root/')->getSandboxPath());
+        $this->assertEquals('/root', (new Client())->setSandboxPath('/root/')->getSandboxPath());
+        $this->assertEquals('/a/bit/deeper/path', (new Client())->setSandboxPath('/a/bit/deeper/path/')->getSandboxPath());
     }
 
     /**
@@ -124,12 +124,12 @@ class SettingsTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * Test if root is used in key path
+     * Test if sandbox path is used in key path
      */
-    public function testRootIsUsedInKeyPath()
+    public function testSandboxPathIsUsedInKeyPath()
     {
         $this->assertEquals('/v2/keys/path/to/key', (new Client())->getKeyPath('path/to/key'));
-        $this->assertEquals('/v2/keys/root/is/cool/path/to/key', (new Client())->setRoot('root/is/cool')->getKeyPath('path/to/key'));
+        $this->assertEquals('/v2/keys/root/is/cool/path/to/key', (new Client())->setSandboxPath('root/is/cool')->getKeyPath('path/to/key'));
     }
 
     /**
@@ -137,7 +137,7 @@ class SettingsTest extends \PHPUnit_Framework_TestCase
      */
     public function testGetKeyUrl()
     {
-        $clinet = (new Client('http://localhost:4001', 'v7'))->setRoot('awesome/root');
+        $clinet = (new Client('http://localhost:4001', 'v7'))->setSandboxPath('awesome/root');
         $this->assertInstanceOf(Client::class, $clinet);
 
         $this->assertEquals('http://localhost:4001/v7/keys/awesome/root/path/to/key', $clinet->getKeyUrl('path/to/key'));

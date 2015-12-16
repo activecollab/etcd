@@ -27,7 +27,7 @@ class ClientTest extends \PHPUnit_Framework_TestCase
     {
         $this->client = new Client();
 
-        $this->client->setRoot('/');
+        $this->client->setSandboxPath('/');
 
         try {
             $this->client->removeDir($this->dirname, true);
@@ -42,7 +42,7 @@ class ClientTest extends \PHPUnit_Framework_TestCase
         $this->assertInternalType('array', $create_dir['node']);
         $this->assertTrue($create_dir['node']['dir']);
 
-        $this->client->setRoot($this->dirname);
+        $this->client->setSandboxPath($this->dirname);
     }
 
     /**
@@ -81,7 +81,7 @@ class ClientTest extends \PHPUnit_Framework_TestCase
     /**
      * @expectedException \ActiveCollab\Etcd\Exception\KeyExistsException
      */
-    public function testMk()
+    public function testCreate()
     {
         $this->client->create('testmk', 'mkvalue');
         $this->assertEquals('mkvalue', $this->client->get('testmk'));
@@ -91,7 +91,7 @@ class ClientTest extends \PHPUnit_Framework_TestCase
     /**
      * @expectedException \ActiveCollab\Etcd\Exception\KeyExistsException
      */
-    public function testMkdir()
+    public function testCreateDir()
     {
         $this->client->createDir('testmkdir');
         $this->client->createDir('testmkdir');
@@ -119,14 +119,14 @@ class ClientTest extends \PHPUnit_Framework_TestCase
         $this->client->createDir($dirname);
         $this->client->updateDir($dirname, 10);
 
-        $dir = $this->client->listDir($dirname);
+        $dir = $this->client->dirInfo($dirname);
         $this->assertLessThanOrEqual(10, $dir['node']['ttl']);
     }
 
     /**
      * @expectedException \ActiveCollab\Etcd\Exception\EtcdException
      */
-    public function testRm()
+    public function testRemove()
     {
         $this->client->remove('/rmkey');
     }
@@ -134,7 +134,7 @@ class ClientTest extends \PHPUnit_Framework_TestCase
     /**
      * @expectedException \ActiveCollab\Etcd\Exception\EtcdException
      */
-    public function testRmdir()
+    public function testRemoveDir()
     {
         $this->client->createDir('testrmdir');
         $this->client->removeDir('testrmdir', true);
@@ -143,27 +143,28 @@ class ClientTest extends \PHPUnit_Framework_TestCase
 
     public function testListDir()
     {
-        $data = $this->client->listDir();
+        $data = $this->client->dirInfo();
+
         $this->assertEquals($this->dirname, $data['node']['key']);
         $this->assertTrue($data['node']['dir'] == 1);
     }
 
-    public function testLs()
+    public function testListSubdirs()
     {
-        $dirs = $this->client->listDirs();
+        $dirs = $this->client->listSubdirs();
         $this->assertTrue(in_array($this->dirname, $dirs));
     }
 
-    public function testGetKeysValue()
+    public function testGetKeysValueMap()
     {
         $this->client->set('/a/aa', 'a_a');
         $this->client->set('/a/ab', 'a_b');
         $this->client->set('/a/b/ab', 'aa_b');
 
-        $values = $this->client->getKeysValue('/', false);
+        $values = $this->client->getKeyValueMap('/', false);
         $this->assertFalse(isset($values[$this->dirname . '/a/aa']));
 
-        $values = $this->client->getKeysValue();
+        $values = $this->client->getKeyValueMap();
         $this->assertTrue(isset($values[$this->dirname . '/a/aa']));
         $this->assertEquals('a_a', $values[$this->dirname . '/a/aa']);
         $this->assertTrue(in_array('aa_b', $values));

@@ -55,7 +55,7 @@ interface ClientInterface
     /**
      * @return string
      */
-    public function getRoot();
+    public function getSandboxPath();
 
     /**
      * Set the default root directory. the default is `/`
@@ -71,7 +71,7 @@ interface ClientInterface
      * @param string $root
      * @return Client
      */
-    public function &setRoot($root);
+    public function &setSandboxPath($root);
 
     /**
      * Build key space operations
@@ -196,7 +196,7 @@ interface ClientInterface
      * @return mixed
      * @throws KeyNotFoundException
      */
-    public function listDir($key = '/', $recursive = false);
+    public function dirInfo($key = '/', $recursive = false);
 
     /**
      * Retrieve a directories key
@@ -206,7 +206,7 @@ interface ClientInterface
      * @return array
      * @throws EtcdException
      */
-    public function listDirs($key = '/', $recursive = false);
+    public function listSubdirs($key = '/', $recursive = false);
 
     /**
      * Get all key-value pair that the key is not directory.
@@ -216,5 +216,5 @@ interface ClientInterface
      * @param  string  $key
      * @return array
      */
-    public function getKeysValue($root = '/', $recursive = true, $key = null);
+    public function getKeyValueMap($root = '/', $recursive = true, $key = null);
 }

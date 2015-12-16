@@ -143,7 +143,7 @@ class Client implements ClientInterface
     /**
      * @return string
      */
-    public function getRoot()
+    public function getSandboxPath()
     {
         return $this->root;
     }
@@ -162,7 +162,7 @@ class Client implements ClientInterface
      * @param string $root
      * @return Client
      */
-    public function &setRoot($root)
+    public function &setSandboxPath($root)
     {
         if (substr($root, 0, 1) !== '/') {
             $root = '/' . $root;
@@ -544,7 +544,7 @@ class Client implements ClientInterface
      * @return mixed
      * @throws KeyNotFoundException
      */
-    public function listDir($key = '/', $recursive = false)
+    public function dirInfo($key = '/', $recursive = false)
     {
         $query = [];
         if ($recursive === true) {
@@ -562,10 +562,10 @@ class Client implements ClientInterface
      * @return array
      * @throws EtcdException
      */
-    public function listDirs($key = '/', $recursive = false)
+    public function listSubdirs($key = '/', $recursive = false)
     {
         try {
-            $data = $this->listDir($key, $recursive);
+            $data = $this->dirInfo($key, $recursive);
         } catch (EtcdException $e) {
             throw $e;
         }
@@ -620,9 +620,9 @@ class Client implements ClientInterface
      * @param string  $key
      * @return array
      */
-    public function getKeysValue($root = '/', $recursive = true, $key = null)
+    public function getKeyValueMap($root = '/', $recursive = true, $key = null)
     {
-        $this->listDirs($root, $recursive);
+        $this->listSubdirs($root, $recursive);
         if (isset($this->values[ $key ])) {
             return $this->values[ $key ];
         }
