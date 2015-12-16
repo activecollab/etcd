@@ -30,12 +30,18 @@ class ClientTest extends \PHPUnit_Framework_TestCase
         $this->client->setRoot('/');
 
         try {
-            $this->client->rmdir($this->dirname, true);
+            $this->client->removeDir($this->dirname, true);
         } catch (EtcdException $e) {
 
         }
 
-        $this->client->mkdir($this->dirname);
+        $create_dir = $this->client->createDir($this->dirname);
+
+        $this->assertInternalType('array', $create_dir);
+        $this->assertEquals('create', $create_dir['action']);
+        $this->assertInternalType('array', $create_dir['node']);
+        $this->assertTrue($create_dir['node']['dir']);
+
         $this->client->setRoot($this->dirname);
     }
 
@@ -45,34 +51,25 @@ class ClientTest extends \PHPUnit_Framework_TestCase
     protected function tearDown()
     {
         try {
-            $this->client->rmdir($this->dirname, true);
+            $this->client->removeDir($this->dirname, true);
         } catch (EtcdException $e) {
 
         }
     }
 
-    /**
-     * @covers LinkORB\Component\Etcd\Client::get
-     */
     public function testGet()
     {
-        $this->cli9ent->set('/testgetvalue', 'getvalue');
+        $this->client->set('/testgetvalue', 'getvalue');
         $value = $this->client->get('/testgetvalue');
         $this->assertEquals('getvalue', $value);
     }
 
-    /**
-     * @covers LinkORB\Component\Etcd\Client::set
-     */
     public function testSet()
     {
         $this->client->set('/testset', 'setvalue');
         $this->assertEquals('setvalue', $this->client->get('/testset'));
     }
 
-    /**
-     * @covers LinkORB\Component\Etcd\Client::set
-     */
     public function testSetWithTtl()
     {
         $ttl = 10;
@@ -86,23 +83,21 @@ class ClientTest extends \PHPUnit_Framework_TestCase
      */
     public function testMk()
     {
-        $this->client->mk('testmk', 'mkvalue');
+        $this->client->create('testmk', 'mkvalue');
         $this->assertEquals('mkvalue', $this->client->get('testmk'));
-        $this->client->mk('testmk', 'mkvalue');
+        $this->client->create('testmk', 'mkvalue');
     }
 
     /**
-     * @covers LinkORB\Component\Etcd\Client::mkdir
      * @expectedException \ActiveCollab\Etcd\Exception\KeyExistsException
      */
     public function testMkdir()
     {
-        $this->client->mkdir('testmkdir');
-        $this->client->mkdir('testmkdir');
+        $this->client->createDir('testmkdir');
+        $this->client->createDir('testmkdir');
     }
 
     /**
-     * @covers LinkORB\Component\Etcd\Client::update
      * @expectedException \ActiveCollab\Etcd\Exception\KeyNotFoundException
      */
     public function testUpdate()
@@ -117,42 +112,35 @@ class ClientTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('value2', $value);
     }
 
-
-    /**
-     * @covers LinkORB\Component\Etcd\Client::updatedir
-     */
     public function testUpdatedir()
     {
         $dirname = '/test_updatedir';
-        $this->client->mkdir($dirname);
+
+        $this->client->createDir($dirname);
         $this->client->updateDir($dirname, 10);
+
         $dir = $this->client->listDir($dirname);
         $this->assertLessThanOrEqual(10, $dir['node']['ttl']);
     }
 
     /**
-     * @covers LinkORB\Component\Etcd\Client::rm
      * @expectedException \ActiveCollab\Etcd\Exception\EtcdException
      */
     public function testRm()
     {
-        $this->client->rm('/rmkey');
+        $this->client->remove('/rmkey');
     }
 
     /**
-     * @covers LinkORB\Component\Etcd\Client::rmdir
      * @expectedException \ActiveCollab\Etcd\Exception\EtcdException
      */
     public function testRmdir()
     {
-        $this->client->mkdir('testrmdir');
-        $this->client->rmdir('testrmdir', true);
-        $this->client->rmdir('testrmdir');
+        $this->client->createDir('testrmdir');
+        $this->client->removeDir('testrmdir', true);
+        $this->client->removeDir('testrmdir');
     }
 
-    /**
-     * @covers LinkORB\Component\Etcd\Client::listDir
-     */
     public function testListDir()
     {
         $data = $this->client->listDir();
@@ -160,18 +148,11 @@ class ClientTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue($data['node']['dir'] == 1);
     }
 
-    /**
-     * @covers LinkORB\Component\Etcd\Client::ls
-     */
     public function testLs()
     {
-        $dirs = $this->client->ls();
+        $dirs = $this->client->listDirs();
         $this->assertTrue(in_array($this->dirname, $dirs));
     }
-
-    /**
-     * @covers LinkORB\Component\Etcd\Client::getKeysValue
-     */
 
     public function testGetKeysValue()
     {

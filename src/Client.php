@@ -6,12 +6,11 @@ use ActiveCollab\Etcd\Exception\EtcdException;
 use ActiveCollab\Etcd\Exception\KeyExistsException;
 use ActiveCollab\Etcd\Exception\KeyNotFoundException;
 use RecursiveArrayIterator;
-use stdClass;
 
 /**
  * @package ActiveCollab\Etcd
  */
-class Client
+class Client implements ClientInterface
 {
     /**
      * @var string
@@ -37,6 +36,11 @@ class Client
      * @var boolean
      */
     private $verify_ssl_peer = true;
+
+    /**
+     * @var string
+     */
+    private $custom_ca_file;
 
     /**
      * @param string $server
@@ -74,6 +78,47 @@ class Client
         } else {
             throw new \InvalidArgumentException("Value '$server' is not a valid server URL");
         }
+    }
+
+    /**
+     * @return bool
+     */
+    public function getVerifySslPeer()
+    {
+        return $this->verify_ssl_peer;
+    }
+
+    /**
+     * @return string
+     */
+    public function getCustomCaFile()
+    {
+        return $this->custom_ca_file;
+    }
+
+    /**
+     * Configure SSL connection parameters
+     *
+     * @param  bool|true   $verify_ssl_peer
+     * @param  string|null $custom_ca_file
+     * @return $this
+     */
+    public function &verifySslPeer($verify_ssl_peer = true, $custom_ca_file = null)
+    {
+        if ($custom_ca_file) {
+            if (!is_file($custom_ca_file)) {
+                throw new \InvalidArgumentException('Custom CA file does not exist');
+            }
+
+            if (!$verify_ssl_peer) {
+                throw new \LogicException('Custom CA file shoult not be set if SSL peer is not verified');
+            }
+        }
+
+        $this->verify_ssl_peer = (boolean) $verify_ssl_peer;
+        $this->custom_ca_file = $custom_ca_file;
+
+        return $this;
     }
 
     /**
@@ -165,65 +210,139 @@ class Client
     /**
      * Make a GET request
      *
-     * @param  string $uri
+     * @param  string $url
      * @param  array  $query_arguments
      * @return array
      */
-    public function httpGet($uri, $query_arguments = [])
+    private function httpGet($url, $query_arguments = [])
     {
         if (!empty($query_arguments)) {
-            $uri .= '?' . http_build_query($query_arguments);
+            $url .= '?' . http_build_query($query_arguments);
         }
 
-        if ($curl = curl_init($uri)) {
+        return $this->executeCurlRequest($this->getCurlHandle($url), $url);
+    }
+
+    /**
+     * Make a POST request
+     *
+     * @param  string        $url
+     * @param  array         $payload
+     * @param  array         $query_arguments
+     * @return array|mixed
+     * @throws EtcdException
+     */
+    private function httpPost($url, $payload = [], $query_arguments = [])
+    {
+        if (!empty($query_arguments)) {
+            $url .= '?' . http_build_query($query_arguments);
+        }
+
+        $curl = $this->getCurlHandle($url);
+
+        curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'POST');
+        curl_setopt($curl, CURLOPT_HTTPHEADER, ['Content-Type: application/x-www-form-urlencoded']);
+        curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($payload));
+
+        return $this->executeCurlRequest($curl, $url);
+    }
+
+    /**
+     * Make a PUT request
+     *
+     * @param  string        $url
+     * @param  array         $payload
+     * @param  array         $query_arguments
+     * @return array|mixed
+     * @throws EtcdException
+     */
+    private function httpPut($url, $payload = [], $query_arguments = [])
+    {
+        if (!empty($query_arguments)) {
+            $url .= '?' . http_build_query($query_arguments);
+        }
+
+        $curl = $this->getCurlHandle($url);
+
+        curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'PUT');
+        curl_setopt($curl, CURLOPT_HTTPHEADER, ['Content-Type: application/x-www-form-urlencoded']);
+        curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($payload));
+
+        return $this->executeCurlRequest($curl, $url);
+    }
+
+    /**
+     * Make a DELETE request
+     *
+     * @param  string        $url
+     * @param  array         $query_arguments
+     * @return array|mixed
+     * @throws EtcdException
+     */
+    private function httpDelete($url, $query_arguments = [])
+    {
+        if (!empty($query_arguments)) {
+            $url .= '?' . http_build_query($query_arguments);
+        }
+
+        $curl = $this->getCurlHandle($url);
+
+        curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'DELETE');
+
+        return $this->executeCurlRequest($curl, $url);
+    }
+
+    /**
+     * Initialize curl handle
+     *
+     * @param  string   $url
+     * @return resource
+     */
+    private function getCurlHandle($url)
+    {
+        if ($curl = curl_init($url)) {
             curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 15);
-
-            curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-            curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
             curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
 
-            $response = curl_exec($curl);
+            if ($this->is_https && $this->verify_ssl_peer) {
+                curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true);
+                curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2);
 
-            if ($error_code = curl_errno($curl)) {
-                $error = curl_error($curl);
-
-                curl_close($curl);
-                throw new \RuntimeException('GET request failed. Reason: ' . $error, $error_code);
+                if ($this->custom_ca_file) {
+                    curl_setopt($curl, CURLOPT_CAINFO, $this->custom_ca_file);
+                }
             } else {
-                curl_close($curl);
-
-                return json_decode($response, true);
+                curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+                curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
             }
+
+            return $curl;
+        } else {
+            throw new \RuntimeException("Can't create curl handle");
         }
     }
 
-    public function httpPut($uri, $payload = [], $query_arguments = [])
+    /**
+     * @param  resource      $curl
+     * @param  string        $url
+     * @param  bool|true     $decode_etcd_json
+     * @return array|mixed
+     * @throws EtcdException
+     */
+    private function executeCurlRequest($curl, $url, $decode_etcd_json = true)
     {
-        if (!empty($query_arguments)) {
-            $uri .= '?' . http_build_query($query_arguments);
-        }
+        $response = curl_exec($curl);
 
-        if ($curl = curl_init($uri)) {
-            curl_setopt($curl, CURLOPT_HTTPHEADER, [ 'Content-Type: application/json' ]);
-            curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'PUT');
-            curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($payload));
+        if ($error_code = curl_errno($curl)) {
+            $error = curl_error($curl);
 
-            curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 15);
+            curl_close($curl);
+            throw new \RuntimeException("$url request failed. Reason: $error", $error_code);
+        } else {
+            curl_close($curl);
 
-            curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-            curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
-            curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-
-            $response = curl_exec($curl);
-
-            if ($error_code = curl_errno($curl)) {
-                $error = curl_error($curl);
-
-                curl_close($curl);
-                throw new \RuntimeException('PUT request failed. Reason: ' . $error, $error_code);
-            } else {
-                curl_close($curl);
-
+            if ($decode_etcd_json) {
                 $response = json_decode($response, true);
 
                 if (isset($response['errorCode']) && $response['errorCode']) {
@@ -233,41 +352,18 @@ class Client
                         $message .= '. Cause: ' . $response['cause'];
                     }
 
-                    throw new EtcdException($message);
+                    switch ($response['errorCode']) {
+                        case 100:
+                            throw new KeyNotFoundException($message);
+                        case 105:
+                            throw new KeyExistsException($message);
+                        default:
+                            throw new EtcdException($message);
+                    }
                 }
-
-                return $response;
             }
-        }
-    }
 
-    public function httpDelete($uri, $query_arguments = [])
-    {
-        if (!empty($query_arguments)) {
-            $uri .= '?' . http_build_query($query_arguments);
-        }
-
-        if ($curl = curl_init($uri)) {
-            curl_setopt($curl, CURLOPT_HTTPHEADER, [ 'Content-Type: application/json' ]);
-            curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'DELETE');
-
-            curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 15);
-
-            curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-            curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
-            curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-
-            $response = curl_exec($curl);
-
-            if ($error_code = curl_errno($curl)) {
-                $error = curl_error($curl);
-
-                curl_close($curl);
-                throw new \RuntimeException('DELETE request failed. Reason: ' . $error, $error_code);
-            } else {
-                curl_close($curl);
-                return json_decode($response, true);
-            }
+            return $response;
         }
     }
 
@@ -278,7 +374,7 @@ class Client
      * @param string $value
      * @param int    $ttl
      * @param array  $condition
-     * @return stdClass
+     * @return array
      */
     public function set($key, $value, $ttl = null, $condition = [])
     {
@@ -298,30 +394,22 @@ class Client
      * @param array  $flags the extra query params
      * @return array
      * @throws KeyNotFoundException
+     * @throws EtcdException
      */
     public function getNode($key, array $flags = null)
     {
         $query = [];
         if ($flags) {
-            $query = [
-            'query' => $flags,
-            ];
+            $query = ['query' => $flags];
         }
 
-        $body = $this->httpGet($this->getKeyUrl($key), $query);
+        $response = $this->httpGet($this->getKeyUrl($key), $query);
 
-//        $request = $this->guzzleclient->get(
-//        $this->buildKeyUri($key),
-//        null,
-//        $query
-//        );
-//        $response = $request->send();
-//        $body = $response->json();
-        if (isset($body['errorCode'])) {
-            throw new KeyNotFoundException($body['message'], $body['errorCode']);
+        if (empty($response['node'])) {
+            throw new EtcdException('Node field expected in respoinse');
+        } else {
+            return $response['node'];
         }
-
-        return $body['node'];
     }
 
     /**
@@ -344,7 +432,7 @@ class Client
     }
 
     /**
-     * make a new key with a given value
+     * Create a new key with a given value
      *
      * @param string $key
      * @param string $value
@@ -352,20 +440,9 @@ class Client
      * @return array $body
      * @throws KeyExistsException
      */
-    public function mk($key, $value, $ttl = 0)
+    public function create($key, $value, $ttl = 0)
     {
-        $body = $request = $this->set(
-        $key,
-        $value,
-        $ttl,
-        ['prevExist' => 'false']
-        );
-
-        if (isset($body['errorCode'])) {
-            throw new KeyExistsException($body['message'], $body['errorCode']);
-        }
-
-        return $body;
+        return $request = $this->set($key, $value, $ttl, ['prevExist' => 'false']);
     }
 
     /**
@@ -376,7 +453,7 @@ class Client
      * @return array $body
      * @throws KeyExistsException
      */
-    public function mkdir($key, $ttl = 0)
+    public function createDir($key, $ttl = 0)
     {
         $data = ['dir' => 'true'];
 
@@ -384,28 +461,8 @@ class Client
             $data['ttl'] = $ttl;
         }
 
-        //var_dump($this->server . $this->buildKeyUri($key));
-
-        $body = $this->httpPut($this->getKeyUrl($key), $data, ['prevExist' => 'false']);
-
-//        $request = $this->guzzleclient->put(
-//        $this->buildKeyUri($key),
-//        null,
-//        $data,
-//        [
-//        'query' => ['prevExist' => 'false'],
-//        ]
-//        );
-//
-//        $response = $request->send();
-//        $body = $response->json();
-        if (isset($body['errorCode'])) {
-            throw new KeyExistsException($body['message'], $body['errorCode']);
-        }
-
-        return $body;
+        return $this->httpPut($this->getKeyUrl($key), $data, ['prevExist' => 'false']);
     }
-
 
     /**
      * Update an existing key with a given value.
@@ -424,20 +481,16 @@ class Client
         if ($condition) {
             $extra = array_merge($extra, $condition);
         }
-        $body = $this->set($key, $value, $ttl, $extra);
-        if (isset($body['errorCode'])) {
-            throw new KeyNotFoundException($body['message'], $body['errorCode']);
-        }
 
-        return $body;
+        return $this->set($key, $value, $ttl, $extra);
     }
 
     /**
      * Update directory
      *
-     * @param string $key
-     * @param int    $ttl
-     * @return array $body
+     * @param  string        $key
+     * @param  int           $ttl
+     * @return array
      * @throws EtcdException
      */
     public function updateDir($key, $ttl)
@@ -446,49 +499,22 @@ class Client
             throw new EtcdException('TTL is required', 204);
         }
 
-        $condition = [
-        'dir' => 'true',
-        'prevExist' => 'true',
-        ];
-
-        $request = $this->guzzleclient->put(
-        $this->getKeyPath($key),
-        null,
-        [
-        'ttl' => (int)$ttl,
-        ],
-        [
-        'query' => $condition,
-        ]
-        );
-        $response = $request->send();
-        $body = $response->json();
-        if (isset($body['errorCode'])) {
-            throw new EtcdException($body['message'], $body['errorCode']);
-        }
-
-        return $body;
+        return $this->httpPut($this->getKeyUrl($key), ['ttl' => (int) $ttl], [
+            'dir' => 'true',
+            'prevExist' => 'true',
+        ]);
     }
-
 
     /**
      * remove a key
      *
      * @param string $key
-     * @return array|stdClass
+     * @return array
      * @throws EtcdException
      */
-    public function rm($key)
+    public function remove($key)
     {
-        $request = $this->guzzleclient->delete($this->getKeyPath($key));
-        $response = $request->send();
-        $body = $response->json();
-
-        if (isset($body['errorCode'])) {
-            throw new EtcdException($body['message'], $body['errorCode']);
-        }
-
-        return $body;
+        return $this->httpDelete($this->getKeyUrl($key));
     }
 
     /**
@@ -499,7 +525,7 @@ class Client
      * @return mixed
      * @throws EtcdException
      */
-    public function rmdir($key, $recursive = false)
+    public function removeDir($key, $recursive = false)
     {
         $query = ['dir' => 'true'];
 
@@ -507,23 +533,7 @@ class Client
             $query['recursive'] = 'true';
         }
 
-        $body = $this->httpDelete($this->server . $this->getKeyPath($key), $query);
-
-//        $request = $this->guzzleclient->delete(
-//        $this->buildKeyUri($key),
-//        null,
-//        null,
-//        [
-//        'query' => $query,
-//        ]
-//        );
-//        $response = $request->send();
-//        $body = $response->json();
-        if (isset($body['errorCode'])) {
-            throw new EtcdException($body['message'], $body['errorCode']);
-        }
-
-        return $body;
+        return $this->httpDelete($this->server . $this->getKeyPath($key), $query);
     }
 
     /**
@@ -540,20 +550,8 @@ class Client
         if ($recursive === true) {
             $query['recursive'] = 'true';
         }
-        $request = $this->guzzleclient->get(
-        $this->getKeyPath($key),
-        null,
-        [
-        'query' => $query,
-        ]
-        );
-        $response = $request->send();
-        $body = $response->json();
-        if (isset($body['errorCode'])) {
-            throw new KeyNotFoundException($body['message'], $body['errorCode']);
-        }
 
-        return $body;
+        return $this->httpGet($this->getKeyUrl($key), $query);
     }
 
     /**
@@ -564,7 +562,7 @@ class Client
      * @return array
      * @throws EtcdException
      */
-    public function ls($key = '/', $recursive = false)
+    public function listDirs($key = '/', $recursive = false)
     {
         try {
             $data = $this->listDir($key, $recursive);
@@ -577,10 +575,15 @@ class Client
         return $this->traversalDir($iterator);
     }
 
+    /**
+     * @var array
+     */
     private $dirs = [];
 
+    /**
+     * @var array
+     */
     private $values = [];
-
 
     /**
      * Traversal the directory to get the keys.
@@ -619,7 +622,7 @@ class Client
      */
     public function getKeysValue($root = '/', $recursive = true, $key = null)
     {
-        $this->ls($root, $recursive);
+        $this->listDirs($root, $recursive);
         if (isset($this->values[ $key ])) {
             return $this->values[ $key ];
         }
