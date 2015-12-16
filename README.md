@@ -2,7 +2,7 @@
 
 etcd is a distributed configuration system, part of the coreos project.
 
-This repository provides a client library for etcd for PHP applications it is based on [linkorb/etcd-php](https://github.com/linkorb/etcd-php). To learn why we forked it, jump [here](#why_fork).
+This repository provides a client library for etcd for PHP applications. It is based on [linkorb/etcd-php](https://github.com/linkorb/etcd-php). To learn why we forked it, jump [here](#why-fork).
 
 ## Installating etcd
 
