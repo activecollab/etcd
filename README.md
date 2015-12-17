@@ -88,4 +88,4 @@ $client = (new Client('https://127.0.0.1:4001'))->verifySslPeer(true, '/path/to/
 
 ## Why Fork?
 
-While [original library](https://github.com/linkorb/etcd-php) works well, it depends on two big packages: Symfony Console and Guzzle. For something as low level as config access, we wanted something a bit nimbler, so we refactored the original library to use PHP's curl extension.
+While [original library](https://github.com/linkorb/etcd-php) works well, it depends on two big packages: Symfony Console and Guzzle. For a feature as low level as config access, we wanted something a bit nimbler, so we removed CLI commands and refactored the original library to use PHP's curl extension.
