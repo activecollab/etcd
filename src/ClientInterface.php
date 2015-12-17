@@ -95,6 +95,22 @@ interface ClientInterface
     public function geVersion();
 
     /**
+     * Return true if key exists
+     *
+     * @param  string  $key
+     * @return boolean
+     */
+    public function exists($key);
+
+    /**
+     * Return true if directory exists
+     *
+     * @param  string  $key
+     * @return boolean
+     */
+    public function dirExists($key);
+
+    /**
      * Set the value of a key
      *
      * @param string $key

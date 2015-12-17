@@ -57,6 +57,34 @@ class ClientTest extends \PHPUnit_Framework_TestCase
         }
     }
 
+    public function testExists()
+    {
+        $this->assertFalse($this->client->exists('/testgetvalue'));
+        $this->client->set('/testgetvalue', 'getvalue');
+        $this->assertTrue($this->client->exists('/testgetvalue'));
+    }
+
+    public function testExistsOnlyChecksForValues()
+    {
+        $this->assertFalse($this->client->exists('/testgetvalue'));
+        $this->client->createDir('/testgetvalue');
+        $this->assertFalse($this->client->exists('/testgetvalue'));
+    }
+
+    public function testDirExists()
+    {
+        $this->assertFalse($this->client->dirExists('/testdir'));
+        $this->client->createDir('/testdir');
+        $this->assertTrue($this->client->dirExists('/testdir'));
+    }
+
+    public function testDirExistsChecksForDirs()
+    {
+        $this->assertFalse($this->client->dirExists('/testdir'));
+        $this->client->set('/testdir', 'getvalue');
+        $this->assertFalse($this->client->dirExists('/testdir'));
+    }
+
     public function testGet()
     {
         $this->client->set('/testgetvalue', 'getvalue');

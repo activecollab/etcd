@@ -208,173 +208,33 @@ class Client implements ClientInterface
     }
 
     /**
-     * Make a GET request
-     *
-     * @param  string $url
-     * @param  array  $query_arguments
-     * @return array
+     * {@inheritdoc}
      */
-    private function httpGet($url, $query_arguments = [])
+    public function exists($key)
     {
-        if (!empty($query_arguments)) {
-            $url .= '?' . http_build_query($query_arguments);
-        }
+        try {
+            $response = $this->httpGet($this->getKeyUrl($key));
 
-        return $this->executeCurlRequest($this->getCurlHandle($url), $url);
-    }
-
-    /**
-     * Make a POST request
-     *
-     * @param  string        $url
-     * @param  array         $payload
-     * @param  array         $query_arguments
-     * @return array|mixed
-     * @throws EtcdException
-     */
-    private function httpPost($url, $payload = [], $query_arguments = [])
-    {
-        if (!empty($query_arguments)) {
-            $url .= '?' . http_build_query($query_arguments);
-        }
-
-        $curl = $this->getCurlHandle($url);
-
-        curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'POST');
-        curl_setopt($curl, CURLOPT_HTTPHEADER, ['Content-Type: application/x-www-form-urlencoded']);
-        curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($payload));
-
-        return $this->executeCurlRequest($curl, $url);
-    }
-
-    /**
-     * Make a PUT request
-     *
-     * @param  string        $url
-     * @param  array         $payload
-     * @param  array         $query_arguments
-     * @return array|mixed
-     * @throws EtcdException
-     */
-    private function httpPut($url, $payload = [], $query_arguments = [])
-    {
-        if (!empty($query_arguments)) {
-            $url .= '?' . http_build_query($query_arguments);
-        }
-
-        $curl = $this->getCurlHandle($url);
-
-        curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'PUT');
-        curl_setopt($curl, CURLOPT_HTTPHEADER, ['Content-Type: application/x-www-form-urlencoded']);
-        curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($payload));
-
-        return $this->executeCurlRequest($curl, $url);
-    }
-
-    /**
-     * Make a DELETE request
-     *
-     * @param  string        $url
-     * @param  array         $query_arguments
-     * @return array|mixed
-     * @throws EtcdException
-     */
-    private function httpDelete($url, $query_arguments = [])
-    {
-        if (!empty($query_arguments)) {
-            $url .= '?' . http_build_query($query_arguments);
-        }
-
-        $curl = $this->getCurlHandle($url);
-
-        curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'DELETE');
-
-        return $this->executeCurlRequest($curl, $url);
-    }
-
-    /**
-     * Initialize curl handle
-     *
-     * @param  string   $url
-     * @return resource
-     */
-    private function getCurlHandle($url)
-    {
-        if ($curl = curl_init($url)) {
-            curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 15);
-            curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
-
-            if ($this->is_https && $this->verify_ssl_peer) {
-                curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true);
-                curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2);
-
-                if ($this->custom_ca_file) {
-                    curl_setopt($curl, CURLOPT_CAINFO, $this->custom_ca_file);
-                }
-            } else {
-                curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-                curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
-            }
-
-            return $curl;
-        } else {
-            throw new \RuntimeException("Can't create curl handle");
+            return !empty($response['node']) && array_key_exists('value', $response['node']);
+        } catch (KeyNotFoundException $e) {
+            return false;
         }
     }
 
     /**
-     * @param  resource      $curl
-     * @param  string        $url
-     * @param  bool|true     $decode_etcd_json
-     * @return array|mixed
-     * @throws EtcdException
+     * {@inheritdoc}
      */
-    private function executeCurlRequest($curl, $url, $decode_etcd_json = true)
+    public function dirExists($key)
     {
-        $response = curl_exec($curl);
-
-        if ($error_code = curl_errno($curl)) {
-            $error = curl_error($curl);
-
-            curl_close($curl);
-            throw new \RuntimeException("$url request failed. Reason: $error", $error_code);
-        } else {
-            curl_close($curl);
-
-            if ($decode_etcd_json) {
-                $response = json_decode($response, true);
-
-                if (isset($response['errorCode']) && $response['errorCode']) {
-                    $message = $response['message'];
-
-                    if (isset($response['cause']) && $response['cause']) {
-                        $message .= '. Cause: ' . $response['cause'];
-                    }
-
-                    switch ($response['errorCode']) {
-                        case 100:
-                            throw new KeyNotFoundException($message);
-                        case 105:
-                            throw new KeyExistsException($message);
-                        default:
-                            throw new EtcdException($message);
-                    }
-                }
-            }
-
-            return $response;
+        try {
+            return !empty($this->httpGet($this->getKeyUrl($key))['node']['dir']);
+        } catch (KeyNotFoundException $e) {
+            return false;
         }
     }
 
     /**
-     * Set the value of a key
-     *
-     * @param string $key
-     * @param string $value
-     * @param int    $ttl
-     * @param array  $condition
-     * @return array
+     * {@inheritdoc}
      */
     public function set($key, $value, $ttl = null, $condition = [])
     {
@@ -628,5 +488,169 @@ class Client implements ClientInterface
         }
 
         return $this->values;
+    }
+
+    // ---------------------------------------------------
+    //  Make requests
+    // ---------------------------------------------------
+
+    /**
+     * Make a GET request
+     *
+     * @param  string $url
+     * @param  array  $query_arguments
+     * @return array
+     */
+    private function httpGet($url, $query_arguments = [])
+    {
+        if (!empty($query_arguments)) {
+            $url .= '?' . http_build_query($query_arguments);
+        }
+
+        return $this->executeCurlRequest($this->getCurlHandle($url), $url);
+    }
+
+    /**
+     * Make a POST request
+     *
+     * @param  string        $url
+     * @param  array         $payload
+     * @param  array         $query_arguments
+     * @return array|mixed
+     * @throws EtcdException
+     */
+    private function httpPost($url, $payload = [], $query_arguments = [])
+    {
+        if (!empty($query_arguments)) {
+            $url .= '?' . http_build_query($query_arguments);
+        }
+
+        $curl = $this->getCurlHandle($url);
+
+        curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'POST');
+        curl_setopt($curl, CURLOPT_HTTPHEADER, ['Content-Type: application/x-www-form-urlencoded']);
+        curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($payload));
+
+        return $this->executeCurlRequest($curl, $url);
+    }
+
+    /**
+     * Make a PUT request
+     *
+     * @param  string        $url
+     * @param  array         $payload
+     * @param  array         $query_arguments
+     * @return array|mixed
+     * @throws EtcdException
+     */
+    private function httpPut($url, $payload = [], $query_arguments = [])
+    {
+        if (!empty($query_arguments)) {
+            $url .= '?' . http_build_query($query_arguments);
+        }
+
+        $curl = $this->getCurlHandle($url);
+
+        curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'PUT');
+        curl_setopt($curl, CURLOPT_HTTPHEADER, ['Content-Type: application/x-www-form-urlencoded']);
+        curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($payload));
+
+        return $this->executeCurlRequest($curl, $url);
+    }
+
+    /**
+     * Make a DELETE request
+     *
+     * @param  string        $url
+     * @param  array         $query_arguments
+     * @return array|mixed
+     * @throws EtcdException
+     */
+    private function httpDelete($url, $query_arguments = [])
+    {
+        if (!empty($query_arguments)) {
+            $url .= '?' . http_build_query($query_arguments);
+        }
+
+        $curl = $this->getCurlHandle($url);
+
+        curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'DELETE');
+
+        return $this->executeCurlRequest($curl, $url);
+    }
+
+    /**
+     * Initialize curl handle
+     *
+     * @param  string   $url
+     * @return resource
+     */
+    private function getCurlHandle($url)
+    {
+        if ($curl = curl_init($url)) {
+            curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 15);
+            curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
+
+            if ($this->is_https && $this->verify_ssl_peer) {
+                curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true);
+                curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2);
+
+                if ($this->custom_ca_file) {
+                    curl_setopt($curl, CURLOPT_CAINFO, $this->custom_ca_file);
+                }
+            } else {
+                curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+                curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
+            }
+
+            return $curl;
+        } else {
+            throw new \RuntimeException("Can't create curl handle");
+        }
+    }
+
+    /**
+     * @param  resource      $curl
+     * @param  string        $url
+     * @param  bool|true     $decode_etcd_json
+     * @return array|mixed
+     * @throws EtcdException
+     */
+    private function executeCurlRequest($curl, $url, $decode_etcd_json = true)
+    {
+        $response = curl_exec($curl);
+
+        if ($error_code = curl_errno($curl)) {
+            $error = curl_error($curl);
+
+            curl_close($curl);
+            throw new \RuntimeException("$url request failed. Reason: $error", $error_code);
+        } else {
+            curl_close($curl);
+
+            if ($decode_etcd_json) {
+                $response = json_decode($response, true);
+
+                if (isset($response['errorCode']) && $response['errorCode']) {
+                    $message = $response['message'];
+
+                    if (isset($response['cause']) && $response['cause']) {
+                        $message .= '. Cause: ' . $response['cause'];
+                    }
+
+                    switch ($response['errorCode']) {
+                        case 100:
+                            throw new KeyNotFoundException($message);
+                        case 105:
+                            throw new KeyExistsException($message);
+                        default:
+                            throw new EtcdException($message);
+                    }
+                }
+            }
+
+            return $response;
+        }
     }
 }
