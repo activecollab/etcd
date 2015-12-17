@@ -7,6 +7,6 @@ use Exception;
 /**
  * @author Cong Peijun <p.cong@linkorb.com>
  */
-class EtcdException extends Exception
+class EtcdException extends Exception implements ExceptionInterface
 {
 }
