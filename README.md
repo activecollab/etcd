@@ -32,7 +32,9 @@ use use ActiveCollab\Etcd\Client as EtcdClient;
 $client = new EtcdClient('http://127.0.0.1:4001');
 
 // Get, set, update, remove key
-$client->set('/key/name', 'value');
+if (!$client->exists('/key/name')) {
+    $client->set('/key/name', 'value');
+}
 $client->set('/key/name', 'value', 10); // Set TTL
 print $client->get('/key/name');
 
@@ -41,7 +43,9 @@ $client->update('/key/name', 'new value');
 $client->remove('/key/name');
 
 // Working with dirs
-$client->createDir('/dir/path');
+if (!$client->dirExists('/dir/path')) {
+    $client->createDir('/dir/path');
+}
 $client->updateDir('/dir/path', 10); // Set TTL
 $client->removeDir('/dir/path');
 
