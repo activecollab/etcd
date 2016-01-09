@@ -498,7 +498,11 @@ class Client implements ClientInterface
         $current_sandbox_path = $this->getSandboxPath();
 
         if ($sandbox_path != $current_sandbox_path) {
-            $this->setSandboxPath($sandbox_path);
+            if (mb_substr($sandbox_path, 0, 2) == './') {
+                $this->setSandboxPath($current_sandbox_path . mb_substr($sandbox_path, 1));
+            } else {
+                $this->setSandboxPath($sandbox_path);
+            }
         }
 
         call_user_func_array($callback, [&$this]);
