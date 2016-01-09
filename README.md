@@ -71,6 +71,18 @@ $client->set('/key/name', 'value'); // will set /my/namespace/key/name
 print $client->get('/key/name'); // will print /my/namespace/key/name
 ```
 
+One more conenient method that client offers is option to call several commands in a specific sanbox, and have client revert back to the previous sandbox path when done:
+
+```php
+$client = new EtcdClient('http://127.0.0.1:4001');
+$client->setSandboxPath('/my/namespace');
+
+$client->sandboxed('/different/namespace', function(EtcdClient &$c) {
+    $c->set('new_key', 123); // Sets /different/namespace/new_key
+});
+
+print $client->getSandboxPath(); // Prints '/my/namespace'
+```
 
 ## SSL
 
