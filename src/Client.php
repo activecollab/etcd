@@ -489,7 +489,7 @@ class Client implements ClientInterface
 
         return $this->values;
     }
-    
+
     /**
      * {@inheritdoc}
      */
