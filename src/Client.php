@@ -489,6 +489,24 @@ class Client implements ClientInterface
 
         return $this->values;
     }
+    
+    /**
+     * {@inheritdoc}
+     */
+    public function sandboxed($sandbox_path, callable $callback)
+    {
+        $current_sandbox_path = $this->getSandboxPath();
+
+        if ($sandbox_path != $current_sandbox_path) {
+            $this->setSandboxPath($sandbox_path);
+        }
+
+        call_user_func_array($callback, [&$this]);
+
+        if ($sandbox_path != $current_sandbox_path) {
+            $this->setSandboxPath($current_sandbox_path);
+        }
+    }
 
     // ---------------------------------------------------
     //  Make requests

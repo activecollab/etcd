@@ -233,4 +233,12 @@ interface ClientInterface
      * @return array
      */
     public function getKeyValueMap($root = '/', $recursive = true, $key = null);
+
+    /**
+     * Run a sandboxed set of commands.
+     *
+     * @param string   $sandbox_path
+     * @param callable $callback
+     */
+    public function sandboxed($sandbox_path, callable $callback);
 }
