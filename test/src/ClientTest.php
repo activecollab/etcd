@@ -3,6 +3,7 @@
 namespace ActiveCollab\Etcd\Tests\Etcd;
 
 use ActiveCollab\Etcd\Client;
+use ActiveCollab\Etcd\ClientInterface;
 use ActiveCollab\Etcd\Exception\EtcdException;
 
 /**
@@ -204,5 +205,35 @@ class ClientTest extends \PHPUnit_Framework_TestCase
         $setdata = $this->client->set($key, 'node_value');
         $node = $this->client->getNode($key);
         $this->assertJsonStringEqualsJsonString(json_encode($node), json_encode($setdata['node']));
+    }
+
+    /**
+     * Test sandboxed call with absolute path
+     */
+    public function testSandboxedCall()
+    {
+        $this->assertFalse($this->client->exists('sub/value'));
+
+        $this->client->sandboxed('/phpunit_test/sub', function(ClientInterface &$c) {
+            $c->set('value', 123);
+        });
+
+        $this->assertTrue($this->client->exists('sub/value'));
+        $this->assertEquals('123', $this->client->get('sub/value'));
+    }
+
+    /**
+     * Test sandboxed call with relative path
+     */
+    public function testRelativeSandboxedCall()
+    {
+        $this->assertFalse($this->client->exists('sub/value'));
+
+        $this->client->sandboxed('./sub', function(ClientInterface &$c) {
+            $c->set('value', 123);
+        });
+
+        $this->assertTrue($this->client->exists('sub/value'));
+        $this->assertEquals('123', $this->client->get('sub/value'));
     }
 }
