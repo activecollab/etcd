@@ -77,6 +77,12 @@ One more conenient method that client offers is option to call several commands 
 $client = new EtcdClient('http://127.0.0.1:4001');
 $client->setSandboxPath('/my/namespace');
 
+// Path relative to the current sandbox path
+$client->sandboxed('./different/namespace', function(EtcdClient &$c) {
+    $c->set('new_key', 123); // Sets /my/namespace/different/namespace/new_key
+});
+
+// Absolute path
 $client->sandboxed('/different/namespace', function(EtcdClient &$c) {
     $c->set('new_key', 123); // Sets /different/namespace/new_key
 });
