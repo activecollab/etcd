@@ -266,7 +266,7 @@ class Client implements ClientInterface
         $response = $this->httpGet($this->getKeyUrl($key), $query);
 
         if (empty($response['node'])) {
-            throw new EtcdException('Node field expected in respoinse');
+            throw new EtcdException('Node field expected in response');
         } else {
             return $response['node'];
         }
