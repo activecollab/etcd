@@ -111,7 +111,7 @@ class Client implements ClientInterface
             }
 
             if (!$verify_ssl_peer) {
-                throw new \LogicException('Custom CA file shoult not be set if SSL peer is not verified');
+                throw new \LogicException('Custom CA file should not be set if SSL peer is not verified');
             }
         }
 
