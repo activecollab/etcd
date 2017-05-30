@@ -20,7 +20,7 @@ interface ClientInterface
      * @param  string $server
      * @return $this
      */
-    public function &setServer($server);
+    public function setServer($server);
 
     /**
      * @return bool
@@ -39,7 +39,7 @@ interface ClientInterface
      * @param  string|null $custom_ca_file
      * @return $this
      */
-    public function &verifySslPeer($verify_ssl_peer = true, $custom_ca_file = null);
+    public function verifySslPeer($verify_ssl_peer = true, $custom_ca_file = null);
 
     /**
      * @return string
@@ -50,7 +50,7 @@ interface ClientInterface
      * @param  string $version
      * @return $this
      */
-    public function &setApiVersion($version);
+    public function setApiVersion($version);
 
     /**
      * @return string
@@ -71,7 +71,7 @@ interface ClientInterface
      * @param string $root
      * @return Client
      */
-    public function &setSandboxPath($root);
+    public function setSandboxPath($root);
 
     /**
      * Build key space operations
