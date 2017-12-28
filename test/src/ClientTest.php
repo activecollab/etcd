@@ -27,7 +27,8 @@ class ClientTest extends \PHPUnit_Framework_TestCase
     protected function setUp()
     {
         $this->client = new Client();
-
+        $this->client->setEtcdUser('user');
+        $this->client->setEtcdPass('pass');
         $this->client->setSandboxPath('/');
 
         try {

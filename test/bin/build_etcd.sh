@@ -2,7 +2,7 @@
 
 wget -c https://storage.googleapis.com/golang/go1.4.linux-amd64.tar.gz
 tar -zxf go1.4.linux-amd64.tar.gz
-git clone https://github.com/coreos/etcd.git
+git clone -b release-2.3 https://github.com/coreos/etcd.git
 export GOROOT=$PWD/go
 #export GOPATH=$PWD/go
 export PATH=$GOPATH/bin:$PATH
