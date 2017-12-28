@@ -1,5 +1,5 @@
 {
-  "name" : "SR02/etcd",
+  "name" : "sr02/etcd",
   "type": "library",
   "description": "etcd client with minimal dependencies",
   "license" : "MIT",
