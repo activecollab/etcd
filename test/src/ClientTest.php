@@ -34,7 +34,7 @@ class ClientTest extends \PHPUnit_Framework_TestCase
         try {
             $this->client->removeDir($this->dirname, true);
         } catch (EtcdException $e) {
-
+            die;
         }
 
         $create_dir = $this->client->createDir($this->dirname);
