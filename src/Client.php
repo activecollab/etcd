@@ -154,22 +154,22 @@ class Client implements ClientInterface
     }
 
     /**
-     * @param string $etcd_user
+     * @param string $user
      * @return $this
      */
-    public function setEtcdUser($etcd_user)
+    public function setEtcdUser($user)
     {
-        $this->etcd_user = $etcd_user;
+        $this->etcd_user = $user;
         return $this;
     }
 
     /**
-     * @param string $etcd_pass
+     * @param string $pass
      * @return $this
      */
-    public function setEtcdPass($etcd_pass)
+    public function setEtcdPass($pass)
     {
-        $this->etcd_pass = $etcd_pass;
+        $this->etcd_pass = $pass;
         return $this;
     }
 
