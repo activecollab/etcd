@@ -43,12 +43,25 @@ class Client implements ClientInterface
     private $custom_ca_file;
 
     /**
+     * @var string
+     */
+    private $etcd_user;
+    /**
+     * @var string
+     */
+    private $etcd_pass;
+
+    /**
      * @param string $server
+     * @param string $etcd_user
+     * @param string $etcd_pass
      * @param string $api_version
      */
-    public function __construct($server = 'http://127.0.0.1:4001', $api_version = 'v2')
+    public function __construct($server = 'http://127.0.0.1:4001', $etcd_user = null, $etcd_pass = null, $api_version = 'v2')
     {
         $this->setServer($server);
+        $this->setEtcdUser($etcd_user);
+        $this->setEtcdPass($etcd_pass);
         $this->setApiVersion($api_version);
     }
 
@@ -137,6 +150,26 @@ class Client implements ClientInterface
     {
         $this->api_version = $version;
 
+        return $this;
+    }
+
+    /**
+     * @param string $user
+     * @return $this
+     */
+    public function setEtcdUser($user)
+    {
+        $this->etcd_user = $user;
+        return $this;
+    }
+
+    /**
+     * @param string $pass
+     * @return $this
+     */
+    public function setEtcdPass($pass)
+    {
+        $this->etcd_pass = $pass;
         return $this;
     }
 
@@ -614,6 +647,9 @@ class Client implements ClientInterface
             curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
 
+            if($this->etcd_user !== null) {
+                curl_setopt($curl, CURLOPT_USERPWD, $this->etcd_user.':'.$this->etcd_pass);
+            }
             if ($this->is_https && $this->verify_ssl_peer) {
                 curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true);
                 curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2);

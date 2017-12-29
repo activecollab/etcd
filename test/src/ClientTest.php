@@ -27,13 +27,14 @@ class ClientTest extends \PHPUnit_Framework_TestCase
     protected function setUp()
     {
         $this->client = new Client();
-
+        $this->client->setEtcdUser('user');
+        $this->client->setEtcdPass('pass');
         $this->client->setSandboxPath('/');
 
         try {
             $this->client->removeDir($this->dirname, true);
         } catch (EtcdException $e) {
-
+            die;
         }
 
         $create_dir = $this->client->createDir($this->dirname);

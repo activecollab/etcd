@@ -1,10 +1,10 @@
 # Etcd PHP Client
 
-[![Build Status](https://travis-ci.org/activecollab/etcd.svg?branch=master)](https://travis-ci.org/activecollab/etcd)
+[![Build Status](https://travis-ci.org/SR02/etcd.svg?branch=master)](https://travis-ci.org/SR02/etcd)
 
 etcd is a distributed configuration system, part of the coreos project.
 
-This repository provides a client library for etcd for PHP applications. It is based on [linkorb/etcd-php](https://github.com/linkorb/etcd-php). To learn why we forked it, jump [here](#why-fork).
+This repository provides a client library for etcd for PHP applications. It is based on [linkorb/etcd-php](https://github.com/linkorb/etcd-php) and [activecollab/etcd](https://github.com/activecollab/etcd).
 
 ## Installating etcd
 
@@ -27,7 +27,7 @@ Easiest way is to install it using composer:
 ## Using Client
 
 ```php
-use use ActiveCollab\Etcd\Client as EtcdClient;
+use ActiveCollab\Etcd\Client as EtcdClient;
 
 $client = new EtcdClient('http://127.0.0.1:4001');
 
@@ -103,7 +103,3 @@ as well as to use a custom CA file:
 ```php
 $client = (new Client('https://127.0.0.1:4001'))->verifySslPeer(true, '/path/to/ca/file');
 ```
-
-## Why Fork?
-
-While [original library](https://github.com/linkorb/etcd-php) works well, it depends on two big packages: Symfony Console and Guzzle. For a feature as low level as config access, we wanted something a bit nimbler, so we removed CLI commands and refactored the original library to use PHP's curl extension.

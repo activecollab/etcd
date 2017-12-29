@@ -1,11 +1,11 @@
 {
-  "name" : "activecollab/etcd",
+  "name" : "sr02/etcd",
   "type": "library",
   "description": "etcd client with minimal dependencies",
   "license" : "MIT",
   "prefer-stable": true,
   "keywords": [ "etcd", "client", "configuration" ],
-  "homepage": "https://labs.activecollab.com",
+  "homepage": "https://github.com/SR02/etcd",
   "authors": [
     {
       "name" : "Cong Peijun",
@@ -14,6 +14,10 @@
     {
       "name": "Ilija Studen",
       "email": "ilija.studen@activecollab.com"
+    },
+    {
+      "name": "Brian Salvaggio",
+      "email": "salvaggio.brian@gmail.com"
     }
   ],
   "require" : {
