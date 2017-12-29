@@ -27,7 +27,7 @@ Easiest way is to install it using composer:
 ## Using Client
 
 ```php
-use use ActiveCollab\Etcd\Client as EtcdClient;
+use ActiveCollab\Etcd\Client as EtcdClient;
 
 $client = new EtcdClient('http://127.0.0.1:4001');
 
